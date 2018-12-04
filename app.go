@@ -21,7 +21,7 @@ func (a *App) Initialize(user, password, dbname string) {
     connectionString := os.Getenv("CLEARDB_DATABASE_URL")
 
     if (connectionString == "") {
-        connectionString := fmt.Sprintf("%s:%s@/%s", user, password, dbname)
+        connectionString = fmt.Sprintf("%s:%s@/%s", user, password, dbname)
     }
 
     var err error
