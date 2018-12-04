@@ -9,6 +9,7 @@ import (
     "strconv"
     _ "github.com/go-sql-driver/mysql"
     "github.com/gorilla/mux"
+    "os"
 )
 
 type App struct {
@@ -17,7 +18,11 @@ type App struct {
 }
 
 func (a *App) Initialize(user, password, dbname string) {
-    connectionString := fmt.Sprintf("%s:%s@/%s", user, password, dbname)
+    connectionString := os.Getenv("CLEARDB_DATABASE_URL")
+
+    if (connectionString == "") {
+        connectionString := fmt.Sprintf("%s:%s@/%s", user, password, dbname)
+    }
 
     var err error
     a.DB, err = sql.Open("mysql", connectionString)
