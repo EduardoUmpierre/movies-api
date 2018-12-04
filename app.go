@@ -10,6 +10,7 @@ import (
     _ "github.com/go-sql-driver/mysql"
     "github.com/gorilla/mux"
     "os"
+    "time"
 )
 
 type App struct {
@@ -29,6 +30,9 @@ func (a *App) Initialize(user, password, dbname string) {
     if err != nil {
         log.Fatal(err)
     }
+
+    a.DB.SetMaxIdleConns(0)
+    a.DB.SetConnMaxLifetime(time.Second * 10)
 
     const categoriesTableCreationQuery = `
     CREATE TABLE IF NOT EXISTS categories
