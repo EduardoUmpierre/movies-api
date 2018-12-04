@@ -78,7 +78,7 @@ func getCategoriesWithMovies(db *sql.DB) ([]Catalog, error) {
         return nil, err
     }
 
-    for index, element := range categories {
+    for _, element := range categories {
         movies, err := getMoviesByCategoryId(db, element.ID)
 
         if err != nil {
