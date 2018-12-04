@@ -18,7 +18,7 @@ type App struct {
 }
 
 func (a *App) Initialize(user, password, dbname string) {
-    connectionString := os.Getenv("CLEARDB_DATABASE_URL")
+    connectionString := os.Getenv("DATABASE_URL")
 
     if (connectionString == "") {
         connectionString = fmt.Sprintf("%s:%s@/%s", user, password, dbname)
