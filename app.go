@@ -60,19 +60,30 @@ func (a *App) Initialize(user, password, dbname string) {
     a.initializeRoutes()
 }
 
+//
 func (a *App) Run(addr string) {
     log.Println(addr)
     log.Fatal(http.ListenAndServe(addr, a.Router))
 }
 
+// Routes
 func (a *App) initializeRoutes() {
     a.Router.HandleFunc("/movies", a.getMovies).Methods("GET")
     a.Router.HandleFunc("/movies", a.createMovie).Methods("POST")
     a.Router.HandleFunc("/movies/{id:[0-9]+}", a.getMovie).Methods("GET")
     a.Router.HandleFunc("/movies/{id:[0-9]+}", a.updateMovie).Methods("PUT")
     a.Router.HandleFunc("/movies/{id:[0-9]+}", a.deleteMovie).Methods("DELETE")
+
+    a.Router.HandleFunc("/categories", a.getCategories).Methods("GET")
+    a.Router.HandleFunc("/categories", a.createCategory).Methods("POST")
+    a.Router.HandleFunc("/categories/{id:[0-9]+}", a.getCategory).Methods("GET")
+    a.Router.HandleFunc("/categories/{id:[0-9]+}", a.updateCategory).Methods("PUT")
+    a.Router.HandleFunc("/categories/{id:[0-9]+}", a.deleteCategory).Methods("DELETE")
+
+    a.Router.HandleFunc("/catalog", a.getMovieCatalog).Methods("GET")
 }
 
+// Movies
 func (a *App) getMovie(w http.ResponseWriter, r *http.Request) {
     vars := mux.Vars(r)
     id, err := strconv.Atoi(vars["id"])
@@ -92,7 +103,6 @@ func (a *App) getMovie(w http.ResponseWriter, r *http.Request) {
     }
     respondWithJSON(w, http.StatusOK, m)
 }
-
 func (a *App) getMovies(w http.ResponseWriter, r *http.Request) {
     count, _ := strconv.Atoi(r.FormValue("count"))
     start, _ := strconv.Atoi(r.FormValue("start"))
@@ -109,7 +119,6 @@ func (a *App) getMovies(w http.ResponseWriter, r *http.Request) {
     }
     respondWithJSON(w, http.StatusOK, movies)
 }
-
 func (a *App) createMovie(w http.ResponseWriter, r *http.Request) {
     var m Movie
     decoder := json.NewDecoder(r.Body)
@@ -124,7 +133,6 @@ func (a *App) createMovie(w http.ResponseWriter, r *http.Request) {
     }
     respondWithJSON(w, http.StatusCreated, m)
 }
-
 func (a *App) updateMovie(w http.ResponseWriter, r *http.Request) {
     vars := mux.Vars(r)
     id, err := strconv.Atoi(vars["id"])
@@ -146,12 +154,11 @@ func (a *App) updateMovie(w http.ResponseWriter, r *http.Request) {
     }
     respondWithJSON(w, http.StatusOK, m)
 }
-
 func (a *App) deleteMovie(w http.ResponseWriter, r *http.Request) {
     vars := mux.Vars(r)
     id, err := strconv.Atoi(vars["id"])
     if err != nil {
-        respondWithError(w, http.StatusBadRequest, "Invalid User ID")
+        respondWithError(w, http.StatusBadRequest, "Invalid movie ID")
         return
     }
     m := Movie{ID: id}
@@ -162,6 +169,95 @@ func (a *App) deleteMovie(w http.ResponseWriter, r *http.Request) {
     respondWithJSON(w, http.StatusOK, map[string]string{"result": "success"})
 }
 
+// Categories
+func (a *App) getCategory(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    id, err := strconv.Atoi(vars["id"])
+    if err != nil {
+        respondWithError(w, http.StatusBadRequest, "Invalid category ID")
+        return
+    }
+    m := Category{ID: id}
+    if err := m.getCategory(a.DB); err != nil {
+        switch err {
+        case sql.ErrNoRows:
+            respondWithError(w, http.StatusNotFound, "Category not found")
+        default:
+            respondWithError(w, http.StatusInternalServerError, err.Error())
+        }
+        return
+    }
+    respondWithJSON(w, http.StatusOK, m)
+}
+func (a *App) getCategories(w http.ResponseWriter, r *http.Request) {
+    movies, err := getCategories(a.DB)
+    if err != nil {
+        respondWithError(w, http.StatusInternalServerError, err.Error())
+        return
+    }
+    respondWithJSON(w, http.StatusOK, movies)
+}
+func (a *App) createCategory(w http.ResponseWriter, r *http.Request) {
+    var m Category
+    decoder := json.NewDecoder(r.Body)
+    if err := decoder.Decode(&m); err != nil {
+        respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+        return
+    }
+    defer r.Body.Close()
+    if err := m.createCategory(a.DB); err != nil {
+        respondWithError(w, http.StatusInternalServerError, err.Error())
+        return
+    }
+    respondWithJSON(w, http.StatusCreated, m)
+}
+func (a *App) updateCategory(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    id, err := strconv.Atoi(vars["id"])
+    if err != nil {
+        respondWithError(w, http.StatusBadRequest, "Invalid category ID")
+        return
+    }
+    var m Category
+    decoder := json.NewDecoder(r.Body)
+    if err := decoder.Decode(&m); err != nil {
+        respondWithError(w, http.StatusBadRequest, "Invalid resquest payload")
+        return
+    }
+    defer r.Body.Close()
+    m.ID = id
+    if err := m.updateCategory(a.DB); err != nil {
+        respondWithError(w, http.StatusInternalServerError, err.Error())
+        return
+    }
+    respondWithJSON(w, http.StatusOK, m)
+}
+func (a *App) deleteCategory(w http.ResponseWriter, r *http.Request) {
+    vars := mux.Vars(r)
+    id, err := strconv.Atoi(vars["id"])
+    if err != nil {
+        respondWithError(w, http.StatusBadRequest, "Invalid category ID")
+        return
+    }
+    c := Category{ID: id}
+    if err := c.deleteCategory(a.DB); err != nil {
+        respondWithError(w, http.StatusInternalServerError, err.Error())
+        return
+    }
+    respondWithJSON(w, http.StatusOK, map[string]string{"result": "success"})
+}
+
+// Catalog
+func (a *App) getMovieCatalog(w http.ResponseWriter, r *http.Request) {
+    catalog, err := getCategoriesWithMovies(a.DB)
+    if err != nil {
+        respondWithError(w, http.StatusInternalServerError, err.Error())
+        return
+    }
+    respondWithJSON(w, http.StatusOK, catalog)
+}
+
+// Response
 func respondWithError(w http.ResponseWriter, code int, message string) {
     respondWithJSON(w, code, map[string]string{"error": message})
 }

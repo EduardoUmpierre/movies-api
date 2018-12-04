@@ -66,3 +66,24 @@ func getMovies(db *sql.DB, start, count int) ([]Movie, error) {
 
     return movies, nil
 }
+
+func getMoviesByCategoryId(db *sql.DB, category int) ([]Movie, error) {
+    statement := fmt.Sprintf("SELECT id, title, cover, description FROM movies WHERE category_id = %d", category)
+
+    rows, err := db.Query(statement)
+    if err != nil {
+        return nil, err
+    }
+
+    defer rows.Close()
+    movies := []Movie{}
+    for rows.Next() {
+        var m Movie
+        if err := rows.Scan(&m.ID, &m.Title, &m.Cover, &m.Description); err != nil {
+            return nil, err
+        }
+        movies = append(movies, m)
+    }
+
+    return movies, nil
+}
