@@ -30,6 +30,7 @@ func (a *App) Initialize(user, password, dbname string) {
 }
 
 func (a *App) Run(addr string) {
+    log.Println(addr)
     log.Fatal(http.ListenAndServe(addr, a.Router))
 }
 
