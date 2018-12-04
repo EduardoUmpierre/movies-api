@@ -30,6 +30,32 @@ func (a *App) Initialize(user, password, dbname string) {
         log.Fatal(err)
     }
 
+    const categoriesTableCreationQuery = `
+    CREATE TABLE IF NOT EXISTS categories
+    (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(50) NOT NULL
+    )`
+
+    const moviesTableCreationQuery = `
+    CREATE TABLE IF NOT EXISTS movies
+    (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(120) NOT NULL,
+        cover VARCHAR(255),
+        category_id INT NOT NULL,
+        description text,
+        FOREIGN KEY (category_id) REFERENCES Categories(id)
+    )`
+
+    if _, err := a.DB.Exec(categoriesTableCreationQuery); err != nil {
+        log.Fatal(err)
+    }
+
+    if _, err := a.DB.Exec(moviesTableCreationQuery); err != nil {
+        log.Fatal(err)
+    }
+
     a.Router = mux.NewRouter()
     a.initializeRoutes()
 }
